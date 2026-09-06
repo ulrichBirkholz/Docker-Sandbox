@@ -14,8 +14,8 @@
   "contributes": {
     "commands": [
       {
-        "command": "claude-code-sandbox.helloWorld",
-        "title": "Hello World"
+        "command": "claude-code-sandbox.start",
+        "title": "Start Claude Code Sandbox"
       }
     ]
   },
