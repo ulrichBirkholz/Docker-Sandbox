@@ -1,26 +1,43 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
+import * as path from 'path';
 
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
+	console.log('Congratulations, the extension "claude-code-sandbox" is now active!');
 
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "claude-code-sandbox" is now active!');
+    let disposable = vscode.commands.registerCommand('claude-code-sandbox.start', () => {
+        
+        // 1. Workspace-Pfad ermitteln
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        if (!workspaceFolders) {
+            vscode.window.showErrorMessage("Bitte öffne zuerst einen Workspace.");
+            return;
+        }
+        const workspacePath = workspaceFolders.uri.fsPath;
 
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with registerCommand
-	// The commandId parameter must match the command field in package.json
-	const disposable = vscode.commands.registerCommand('claude-code-sandbox.helloWorld', () => {
-		// The code you place here will be executed every time your command is executed
-		// Display a message box to the user
-		vscode.window.showInformationMessage('Hello World from claude-code-sandbox!');
-	});
+        // 2. Absoluten Pfad zum Dockerfile im Plugin-Verzeichnis ermitteln
+        const dockerfilePath = path.join(context.extensionPath, 'resources');
 
-	context.subscriptions.push(disposable);
+        // 3. Terminal erstellen
+        const terminal = vscode.window.createTerminal("Claude Sandbox");
+        terminal.show();
+
+        // 4. Docker-Image bauen (nutzt das Dockerfile aus dem Plugin) und Container starten
+        // Das Image nennen wir 'claude-sandbox-image'
+        const buildCmd = `docker build -t claude-sandbox-image "${dockerfilePath}"`;
+        
+        // Container starten: -v für Shared Volume, -it für interaktiv
+        const runCmd = `docker run -it --rm -v "${workspacePath}:/workspace" -w /workspace claude-sandbox-image zsh`;
+
+        // Befehle ans Terminal senden
+        terminal.sendText(buildCmd);
+        terminal.sendText(runCmd);
+
+		vscode.window.showInformationMessage('Sandbox is ready!');
+    });
+
+    context.subscriptions.push(disposable);
 }
 
-// This method is called when your extension is deactivated
 export function deactivate() {}
