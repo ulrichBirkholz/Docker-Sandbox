@@ -4,37 +4,31 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 
 export function activate(context: vscode.ExtensionContext) {
-	console.log('Congratulations, the extension "claude-code-sandbox" is now active!');
+    console.log('Congratulations, the extension "claude-code-sandbox" is now active!');
 
     let disposable = vscode.commands.registerCommand('claude-code-sandbox.start', () => {
         
-        // 1. Workspace-Pfad ermitteln
+        // 1. get workspace-path
         const workspaceFolders = vscode.workspace.workspaceFolders;
         if (!workspaceFolders) {
             vscode.window.showErrorMessage("Bitte öffne zuerst einen Workspace.");
             return;
         }
-        const workspacePath = workspaceFolders.uri.fsPath;
+        const workspacePath = workspaceFolders[0].uri.fsPath;
 
-        // 2. Absoluten Pfad zum Dockerfile im Plugin-Verzeichnis ermitteln
+        // 2. get absolute path to Dockerfile in Plugin-Folder
         const dockerfilePath = path.join(context.extensionPath, 'resources');
 
-        // 3. Terminal erstellen
+        // 3. setup terminal
         const terminal = vscode.window.createTerminal("Claude Sandbox");
         terminal.show();
 
-        // 4. Docker-Image bauen (nutzt das Dockerfile aus dem Plugin) und Container starten
-        // Das Image nennen wir 'claude-sandbox-image'
-        const buildCmd = `docker build -t claude-sandbox-image "${dockerfilePath}"`;
-        
-        // Container starten: -v für Shared Volume, -it für interaktiv
-        const runCmd = `docker run -it --rm -v "${workspacePath}:/workspace" -w /workspace claude-sandbox-image zsh`;
+        // 4. concatenate commands with: 
+        // 'docker run' startet ERST, if 'docker build' terminates successfully with status 0.
+        const combinedCmd = `docker build -t claude-sandbox-image "${dockerfilePath}" && docker run -it --rm -v "${workspacePath}:/workspace" -w /workspace claude-sandbox-image zsh`;
+        terminal.sendText(combinedCmd);
 
-        // Befehle ans Terminal senden
-        terminal.sendText(buildCmd);
-        terminal.sendText(runCmd);
-
-		vscode.window.showInformationMessage('Sandbox is ready!');
+        vscode.window.showInformationMessage('Claude Sandbox wird gestartet...');
     });
 
     context.subscriptions.push(disposable);
